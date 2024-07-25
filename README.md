@@ -6,7 +6,7 @@ With Python 3.x installed, run:
 
 `python run.py configs/group_matching_template.py /path/to/matching_form_responses.csv`
 
-##Steps for Running the Algorithm
+## Steps for Running the Algorithm
 
 ### Outline of the group match process
 * Data cleaning and preprocessing
@@ -26,16 +26,16 @@ Update the "Partition" entry (around line 290 of the config) in the CONSTRAINTS 
 
 Modify group size parameters: 
 Adjust the MIN_GROUP_SIZE and MAX_GROUP_SIZE parameters until you are satisfied with the final group sizes in the output CSV file.
+
 If the form is modified from fa23 template, modify the config:
 If you added new questions to the survey, make sure to include them as a new entry in the ROW_CONFIG, and optionally create a new transformer method that will bucket that question's options.
 
-Run script: “python run.py example-config.py data/responses_clean.csv”
-
-We use example-config.py config file, which is the main thing that we make changes. 
-data/responses_clean.csv is your cleaned google form dataset. 
+Run script: `python run.py example-config.py data/responses_clean.csv`
+* We use example-config.py config file, which is the main thing that we make changes. 
+* data/responses_clean.csv is your cleaned google form dataset. 
 
 ### Post Processing
 Make some manual spot checks. The algorithm should do what it is supposed to do. Make sure the following doesn’t happen: 
-A student is the only race/gender in a given group
-Check for singletons (1 person in a group), add them to existing groups
-Manually modify groups if necessary
+1. A student is the only race/gender in a given group
+2. Check for singletons (1 person in a group), add them to existing groups
+3. Manually modify groups if necessary
