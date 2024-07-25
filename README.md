@@ -6,41 +6,36 @@ With Python 3.x installed, run:
 
 `python run.py configs/group_matching_template.py /path/to/matching_form_responses.csv`
 
-## Surveys:
-"...group_matching.pdf" -- Initial group matching surveys
-"...evaluation_survey.pdf" -- Final group feedback surveys
+##Steps for Running the Algorithm
 
-### Fall 2020
-The surveys with the prefix "16A_Fa20..." were used in the first iteration of our group matching system.
+### Outline of the group match process
+* Data cleaning and preprocessing
+* Running the algorithm
+* Post Processing
 
-### Spring 2021
-Changes from Fall 2020:
-* Asked for preferred discussion section times in intake survey
+### Cleaning & Preprocess:
+* Make sure that the column names in your input CSV match or contain the strings in the corresponding Column objects in the ROW_CONFIG. If needed, we recommend changing the column names in the CSV directly.
+* Make sure students who fill out that they have existing partners (“yes”) actually have written partners in the form, or else the matched results will have them as singletons.
 
-### Fall 2021
-Changes from Fall 2020:
-* Asked for preferred discussion section times in intake survey
-* Asked whether the student would be on campus or not following COVID-19 restrictions
+### Running the algorithm
+#### Algorithm settings / Modifying the Config File: 
+The following modifications should be made in your configuration file. The config file needs to reflect any changes made to your survey. An example config file can be found in the Github repo.
 
-### Spring 2022
-Changes from Fall 2020:
-* Asked for preferred discussion section times in intake survey
-* Asked whether or not the student would like to lead their group
-* Asked how the student would like to interact with their study group
-* Asked whether or not the student prefers a study group where another student shares a common identity with them
+First, modify the CONSTRAINTS settings to what we want to prioritize: 
+Update the "Partition" entry (around line 290 of the config) in the CONSTRAINTS dictionary to reflect the ordering of criteria that you would like to prioritize matching students on. This is the order that the algorithm will partition the students on. For example, given the current Fall 2023 config, the algorithm will first partition on year, then location, then homework start time, etc., as we wanted to prioritize matching students of the same graduation year first.
 
-### Fall 2022
-Changes in group matching for mandatory project groups in CS 169A ("CS169_Fa22..."):
-* Groups were restricted to a group size of exaclty 4
-* Final evaluation survey asked Physcology Safety questions on a seven-point Likert scale
+Modify group size parameters: 
+Adjust the MIN_GROUP_SIZE and MAX_GROUP_SIZE parameters until you are satisfied with the final group sizes in the output CSV file.
+If the form is modified from fa23 template, modify the config:
+If you added new questions to the survey, make sure to include them as a new entry in the ROW_CONFIG, and optionally create a new transformer method that will bucket that question's options.
 
-### Spring 2023
-Changes from Fall 2020:
-* Asked for preferred discussion section times in intake survey
-* Asked whether or not the student would like to lead their group
-* Asked how the student would like to interact with their study group
-* Asked whether or not the student prefers a study group where another student shares a common identity with them
+Run script: “python run.py example-config.py data/responses_clean.csv”
 
-### Survey Notes
-* The evaluation survey did not change between Spring 2022 and Spring 2023.
-* Surveys varied slightly in different classes in the same semester, but only one class's survey for a given semester is represented in this repository. This survey is an approximation of all of the surveys released for that semester.
+We use example-config.py config file, which is the main thing that we make changes. 
+data/responses_clean.csv is your cleaned google form dataset. 
+
+### Post Processing
+Make some manual spot checks. The algorithm should do what it is supposed to do. Make sure the following doesn’t happen: 
+A student is the only race/gender in a given group
+Check for singletons (1 person in a group), add them to existing groups
+Manually modify groups if necessary
