@@ -1,5 +1,5 @@
 # Group Matcher
-Repo dedicated to hosting all code and files associated with grouping students into groups based on configurable constraints and CSV format.
+Repo dedicated to hosting all code and files associated with our group matching system. For a brief overview of our system, please view this Google Doc: https://docs.google.com/document/d/1fwjhMQp1gaulxNNvgjQUJKQdKne5pkpXNf0U4q5hxVY/edit?usp=sharing
 
 ## Example usage:
 With Python 3.x installed, run:
