@@ -1,6 +1,6 @@
 ## Surveys:
-"...group_matching.pdf" -- Initial group matching surveys
-"...evaluation_survey.pdf" -- Final group feedback surveys
+"...intake_survey.pdf" -- Intake survey for that semester  
+"...feedback_survey.pdf" -- Feedback survey for that semester
 
 ### Fall 2020
 The surveys with the prefix "16A_Fa20..." were used in the first iteration of our group matching system.
@@ -32,6 +32,14 @@ Changes from Fall 2020:
 * Asked whether or not the student would like to lead their group
 * Asked how the student would like to interact with their study group
 * Asked whether or not the student prefers a study group where another student shares a common identity with them
+
+### Fall 2023 (These are the current example surveys.)
+Changes from Fall 2020:
+* Asked for preferred discussion section times in intake survey
+* Asked whether or not the student would like to lead their group
+* Asked how the student would like to interact with their study group
+* Asked whether or not the student prefers a study group where another student shares a common identity with them
+* Asked for student residential location in hopes of easing the process of meeting up
 
 ### Survey Notes
 * The evaluation survey did not change between Spring 2022 and Spring 2023.

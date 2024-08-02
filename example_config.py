@@ -1,35 +1,7 @@
 from models import Row, Column, Node, Match
 import os
-
-
-def days_transformer(days_list):
-    days_list = days_list[0].strip("[']")
-    if "Saturday" in days_list:
-        return 1
-    elif "Sunday" in days_list:
-        return 2
-    elif "Tuesday" in days_list:
-        return 3
-    elif "Friday" in days_list:
-        return 4
-    elif "Monday" in days_list:
-        return 5
-    elif "Thursday" in days_list:
-        return 6
-    else:
-        return 7
-
-
-def time_transformer(times_list):
-    times_list = times_list[0].strip("[']")
-    if "Morning" in times_list:
-        return 1
-    elif "Afternoon" in times_list:
-        return 2
-    elif "Night" in times_list:
-        return 3
-    else:
-        return 4
+import pandas as pd
+import numpy as np
 
 
 def year_transformer(year):
@@ -45,87 +17,99 @@ def year_transformer(year):
 
 
 def gender_transformer(gender):
-    if len(gender) == 1:
-        gender = gender[0]
-        if gender == "Female":
-            return 0
-        elif gender == "Male":
-            return 1
-    return 2
+    if "Do not use" in gender:
+        return 4
+    if "Transgender" in gender or \
+        "Non-binary" in gender or \
+        "Gender non-conforming" in gender or \
+            len(gender) > 1:
+        return 0
+    gender = gender[0]
+    if gender == "Female":
+        return 1
+    elif gender == "Male":
+        return 2
+    elif gender != "Prefer not to answer":
+        return 3
 
 
 def race_transformer(race):
-    if len(race) == 1:
-        race = race[0]
-        if race == "White":
-            return 0
-        elif "Asian" in race:
-            return 1
-        elif race == "Hispanic":
-            return 2
-        elif race == "Black/African American":
-            return 3
-        elif "Alaska" in race:
-            return 4
-        elif "Islander" in race:
-            return 5
-        elif "Middle-Eastern" in race:
-            return 6
-        elif race == "Multiple races":
-            return 7
-        elif race == "Prefer not to answer" or True:
-            return 8
-    else:
-        return 7
-
-
-def timezone_transformer_delta(tz, delta=2):
-    # Returns a list of all timezones that this person can attend for multi-partitioning purposes
-    # -11 to +14
-    # -22 to +28 for x2
-    tz *= 2
-    tz = min(max(round(tz), -22), 28)
-    all_possible = list(range(tz - (delta * 2), tz + (delta * 2 + 1)))
-    all_possible = [x for x in all_possible if -22 <= x <= 28]
-    return all_possible
-
-
-def timezone_bucketer(tz):
-    # print(tz)
-    if "-7" in tz:
+    if "Do not use" in race:
+        return 9
+    if "Black / African American" in race:
+        return 0
+    elif "Latino / Latinx / Chicano / Chicanx / Hispanic" in race:
         return 1
-    elif "-5" in tz or "-4" in tz:
+    elif "American Indian / Alaska Native" in race:
         return 2
-    elif "+1" in tz:
+    elif "Middle Eastern / North African" in race:
         return 3
-    elif "+5.5" in tz or "+8" in tz or "+9" in tz:
+    elif "Native Hawaiian / Pacific Islander" in race:
         return 4
-    else:
+    elif "Multiple races" in race:
         return 5
+    elif "Asian / Asian American" in race:
+        return 6
+    elif "White" in race:
+        return 7
+    else:
+        return 8
+
+
+def interaction_transformer(choice):
+    if "None of the above" in choice:
+        return 1
+    elif "Doing work separately and discussing approaches" in choice:
+        return 2
+    elif "Socializing / meeting new people in non-academic contexts" in choice:
+        return 3
+    else:
+        return 4
 
 
 def email_transformer(email):
     return email.lower().strip()
 
 
-# ## cancelled discussions; 12-1 and 5-6
-# def discussion_transformer(disc_list):
-#     times_list = []
-#     if "10-11 M/W" in disc_list:
-#         times_list.append(10)
-#     if "11-12 M/W" in disc_list:
-#         times_list.append(11)
-#     if "1-2 M/W" in disc_list:
-#         times_list.append(1)
-#     if "2-3 M/W" in disc_list:
-#         times_list.append(2)
-#     if "3-4 M/W" in disc_list:
-#         times_list.append(3)
-#     if "4-5 M/W" in disc_list:
-#         times_list.append(4)
-#     return times_list
+def course_transformer(course):
+    if ("Math 1" in course):
+        return 1
+    elif ("Math 5" in course):
+        return 2
+    elif ("Physics 7" in course):
+        return 3
+    elif ("CS 70" in course):
+        return 4
+    elif ("CS 61C" in course):
+        return 5
+    elif ("CS 61" in course):
+        return 6
+    else:
+        return 4
+    
+def location_transformer(place):
+    if ("Unit 1/Unit 2/Martinez" in place):
+        return 1
+    elif ("Unit 3/Blackwell" in place):
+        return 2
+    elif ("Clark Kerr" in place):
+        return 3
+    elif ("Foothill/Stern/Bowles" in place):
+        return 4
+    elif ("Off-campus Southside (south of Bancroft Way)" in place):
+        return 5
+    elif ("Off-campus Downtown (east of Fulton/Oxford St.)" in place):
+        return 6
+    elif ("Off-campus Northside (north of Hearst Ave.)" in place):
+        return 7
+    elif ("N/A, I am a commuter student." in place):
+        return 8
+    else:
+        return 9
 
 
+# NOTE: Do not delete Column objects marked with is_optional=False,
+#       unless you're sure you'd like to change that functionality
 ROW_CONFIG = Row(
     [
         Column(
@@ -135,64 +119,29 @@ ROW_CONFIG = Row(
             is_optional=False,
             transformer=email_transformer,
         ),
-        Column("SID", "sid", "sid", is_optional=False),
         Column("First name", "first_name", "text"),
         Column("Last name", "last_name", "text"),
+        Column("SID", "sid", "sid", is_optional=False),
         Column(
-            "What year are you",
-            "year",
-            "radio",
-            is_optional=True,
-            transformer=year_transformer,
-        ),
-        Column(
-            "Would you like to be part of a course study group?",
+            "Would you like to be part of a course study group",
             "want_group",
             "text",
             transformer=lambda x: x == "Yes",
             is_optional=False,
         ),
         Column(
-            "Do you have an existing study group of size 2-6 in mind",
+            "Would you like additional people to join your group",
+            "additional_students",
+            "text",
+            transformer=lambda x: x == "Yes",
+            is_optional=True,
+        ),
+        Column(
+            "Do you already know some students in the course",
             "is_existing",
             "text",
             transformer=lambda x: x == "Yes",
             is_optional=False,
-        ),
-        Column(
-            "timezone offset",
-            "timezone",
-            "text",
-            transformer=timezone_bucketer,
-            is_optional=True,
-        ),
-        Column(
-            "times of the day",
-            "meeting_time",
-            "checkbox",
-            # transformer=time_transformer,
-            is_optional=True,
-        ),
-        Column(
-            "days of the week",
-            "meeting_days",
-            "checkbox",
-            # transformer=days_transformer,
-            is_optional=True,
-        ),
-        Column(
-            "Would you like to attend the same discussion",
-            "disc_with_group",
-            "text",
-            transformer=lambda x: "yes, i would like to" in x.lower(),
-            is_optional=True,
-        ),
-        Column(
-            "discussion section times",
-            "disc_times_options",
-            "checkbox",
-            is_optional=True,
-            # transformer=discussion_transformer,
         ),
         Column(
             "2nd Group Member Berkeley Student Email",
@@ -230,18 +179,76 @@ ROW_CONFIG = Row(
             transformer=email_transformer,
         ),
         Column(
-            "Will you be on the Berkeley campus",
-            "remote",
+            "What year are you",
+            "year",
             "radio",
-            is_optional=True,
-            transformer=lambda x: "Yes" in x,
+            is_optional=False,
+            transformer=year_transformer,  # Buckets years
         ),
         Column(
-            "discussion section times",
-            "sections",
+            "When would you like to work on homework",
+            "hw_start",
+            "radio",
+            is_optional=False,
+        ),
+        Column(
+            "How often would you like the group to meet",
+            "interaction_freq",
+            "radio",
+            is_optional=False,
+        ),
+        Column(
+            "Would you be willing to lead a group",
+            "leader",
+            "text",
+            transformer=lambda x: x == "Yes",
+            is_optional=False, 
+        ),
+        Column("How would you like to interact with a study group",
+               "interact_types",
+               "checkbox",
+               is_optional=False,
+               transformer=interaction_transformer
+               ),
+        Column(
+            "What other technical classes are you currently taking",
+            "taking",
             "checkbox",
-            is_optional=True,
-            transformer=lambda x: "Yes" in x,
+            is_optional=False,
+            transformer=course_transformer,
+        ),
+        Column("Which discussion section times",
+               "disc_times_options",
+               "checkbox",
+               is_optional=False,
+               # transformer=discussion_transformer, # NOTE: Uncomment this line if you'd like to bucket discussion times
+               ),
+        Column("What part of Berkeley do you live in",
+               "location_options",
+               "radio",
+               is_optional=False,
+               transformer=location_transformer,
+               ),
+        # Column(
+        #     "Check the option that applies for you, to help us understand your programming",
+        #     "programming_experience",
+        #     "checkbox",
+        #     is_optional=False,
+        # ),
+        Column(
+            "May we use your demographic information",
+            "use_demographic",
+            "text",
+            transformer=lambda x: x == "Yes",
+            is_optional=False,  # Buckets years
+        ),
+        Column(
+            "Would you prefer a study group where at least one other student",
+            "prefers_dem_matching",
+            "text",
+            transformer=lambda x: ("Yes" in x) or (
+                "Maybe" in x) or ("Indifferent" in x),
+            is_optional=False
         ),
         Column(
             "Which of these options best describes your race?",
@@ -257,33 +264,178 @@ ROW_CONFIG = Row(
             is_optional=True,
             transformer=gender_transformer,
         ),
+        Column(
+            "Are you an international student",
+            "international",
+            "text",
+            is_optional=True,
+            transformer=lambda x: x == "Yes",
+        ),
+        Column(                       # TODO: comment in this Column if you wish to pregroup students
+            "pregroup_partner",
+            "pregroup_partner",
+            "text",
+            is_optional=True,
+            transformer=email_transformer,
+        ),
+        Column(                       # TODO: comment in this Column if you wish to pregroup students
+            "pregroup_partner2",
+            "pregroup_partner2",
+            "text",
+            is_optional=True,
+            transformer=email_transformer,
+        ),
     ]
 )
 
 CONSTRAINTS = {
-    "Partition": ["year", "remote", "meeting_days", "meeting_time"],
+
+    "Partition": ["year", "location_options", "hw_start", "interaction_freq", "use_demographic"],
     "Existing": {
         "type": "explicit_keys",
         "flag": "is_existing",
         "id_key": "email",
-        "data": [
-            "groupmember2",
-            "groupmember3",
-            "groupmember4",
-            "groupmember5",
-            "groupmember6",
-        ],
+        "flag_addtl": "additional_students",
+        "data": ["groupmember2", "groupmember3", "groupmember4", "groupmember5", "groupmember6"],
     },
-    # "Best-effort": [],
+
     "Best-effort": [
-        ["gender", "race"],
-        [1, 1],
+        ["hw_start", "interaction_freq", "interact_types", "taking",
+            "international", "use_demographic", "disc_times_options", "race"],
+        [2, 1, 1, .5, .5, 1, 1, 0.25, 1, 2, 3],
     ],  # column ID's for features followed by weights
 }
 
 MIN_GROUP_SIZE = 3
-MAX_GROUP_SIZE = 6
-MIN_PARTITION_SIZE = 3
+MAX_GROUP_SIZE = 7
+MIN_PARTITION_SIZE = 4
+PREGROUP_PARTNERS = True
+ENFORCE_PREGROUP = True
+
+#####
+# Below this point are pre- and post-processing functions for the grouping algorithm.
+# Feel free to customize these to your liking, but functionality can be most easily controlled
+# by changing the ROW_CONFIG, the CONSTRAINTS, and the other constants above.
+#####
+
+
+def pre_process_csv(csv_file):
+    """
+    Processes the input csv, changes it, and saves a new version to a different csv,
+    returning the string path to the new processed csv
+    """
+    if PREGROUP_PARTNERS:
+        MATCH_WITH_OTHERS_Q = 'Would you like additional people to join your group? (Only if your current group is smaller than 4)'
+        PARTNER_2_Q = '2nd Group Member Berkeley Student Email (must be @berkeley.edu)'
+        PARTNER_3_Q = '3rd Group Member Berkeley Student Email (must be @berkeley.edu)'
+        PARTNER_4_Q = None
+        # this is a column that will be added by this script
+        PREGROUP_COL = 'pregroup_partner'
+        # this is a column that will be added by this script
+        PREGROUP_COL2 = 'pregroup_partner2'
+        EMAIL_Q = 'Email Address'
+ 
+        with open(csv_file, 'rb') as f:
+            df = pd.read_csv(f, dtype=str)
+
+        join_on = df[[EMAIL_Q, PARTNER_2_Q]].rename(
+            columns={EMAIL_Q: 'p2', PARTNER_2_Q: 'p2_choice'})
+        ungrouped_df = df[[EMAIL_Q, PARTNER_2_Q]].merge(right=join_on,
+                                                        how='left',
+                                                        left_on=PARTNER_2_Q, right_on='p2')
+
+        # don't pregroup if the other person didn't list them back (unless the other person didn't indicate anyone)
+        ungrouped_df = ungrouped_df[ungrouped_df[EMAIL_Q] ==
+                                    ungrouped_df['p2_choice']][[EMAIL_Q, PARTNER_2_Q]]
+        ungrouped = ~df[EMAIL_Q].isin(ungrouped_df[EMAIL_Q])
+
+        # don't pregroup if someone listed a partner who did not send in a response
+        partner_isnotin_emails = ~df[PARTNER_2_Q].isin(df[EMAIL_Q])
+
+        # mask with above criteria, and don't pregroup if someone doesn't wish to be matched with others
+
+        pregroup_col = df[PARTNER_2_Q].mask(partner_isnotin_emails, '')\
+            .mask(ungrouped, '')
+        if not ENFORCE_PREGROUP and (MATCH_WITH_OTHERS_Q is not None):
+            pregroup_col = pregroup_col.mask(
+                df[MATCH_WITH_OTHERS_Q] != 'Yes', '')
+        # insert a new column for "pregroup_partner"
+
+        if PARTNER_3_Q != None:
+
+            join_on = df[[EMAIL_Q, PARTNER_3_Q]].rename(
+                columns={EMAIL_Q: 'p3', PARTNER_3_Q: 'p3_choice'})
+            ungrouped_df = df[[EMAIL_Q, PARTNER_3_Q]].merge(right=join_on,
+                                                            how='left',
+                                                            left_on=PARTNER_3_Q, right_on='p3')
+
+            # don't pregroup if the other person didn't list them back (unless the other person didn't indicate anyone)
+            ungrouped_df = ungrouped_df[ungrouped_df[EMAIL_Q] ==
+                                        ungrouped_df['p3_choice']][[EMAIL_Q, PARTNER_3_Q]]
+            ungrouped = ~df[EMAIL_Q].isin(ungrouped_df[EMAIL_Q])
+
+            # don't pregroup if someone listed a partner who did not send in a response
+            partner_isnotin_emails = ~df[PARTNER_3_Q].isin(df[EMAIL_Q])
+
+            # mask with above criteria, and don't pregroup if someone doesn't wish to be matched with others
+
+            pregroup_col2 = df[PARTNER_3_Q].mask(partner_isnotin_emails, '')\
+                .mask(ungrouped, '')
+            if not ENFORCE_PREGROUP and (MATCH_WITH_OTHERS_Q is not None):
+                pregroup_col2 = pregroup_col2.mask(
+                    df[MATCH_WITH_OTHERS_Q] != 'Yes', '')
+        else:
+            pregroup_col2 = df[PARTNER_2_Q].mask(
+                np.ones(df[PARTNER_2_Q].shape) == 1, '')
+
+        if PARTNER_4_Q != None:
+
+            pregrouped_with_4_errored = df[PARTNER_4_Q].mask(
+                df[MATCH_WITH_OTHERS_Q] != 'Yes', '')
+            if (pregrouped_with_4_errored != '').sum() > 0:
+                print("\nThe following students will not be grouped correctly, due to \
+                    someone listing them as a 4th group member while asking to be matched with additional students")
+                print(pregrouped_with_4_errored)
+
+        df.insert(len(df.columns), PREGROUP_COL, pregroup_col)
+        df.insert(len(df.columns), PREGROUP_COL2, pregroup_col2)
+        print(PREGROUP_COL2)
+        proc_csv_name = csv_file[:-4]+'_proc.csv'
+        with open(proc_csv_name, 'w') as f:
+            df.to_csv(proc_csv_name, index=False)
+
+    else:
+        proc_csv_name = csv_file
+
+    with open(proc_csv_name, 'r',) as f:
+        df = pd.read_csv(f, dtype=str)
+
+    proc_csv_name = csv_file[:-4]+'_proc.csv'
+
+    # Do consent preprocessing on demographics question
+
+    use_demographic = "May we use your demographic information to improve your course study group match for this semester?"
+    prefer_demographic = "Would you prefer a study group where at least one other student shared a common identity with you?"
+    race = "Which of these options best describes your race? (Check all that apply)"
+    gender = "How do you self-identify? (Check all that apply)"
+    international = "Are you an international student (primarily residing outside the US)?"
+
+    condition = np.logical_and(
+        df[use_demographic] == "Yes",
+        np.isin(df[prefer_demographic], ["Yes", "Maybe", "Indifferent"]),
+
+    )
+
+    df[race] = np.where(condition, df[race], "Do not use")
+    df[gender] = np.where(condition, df[gender], "Do not use")
+    df[international] = np.where(condition, df[international], "Do not use")
+    with open(proc_csv_name, 'w') as f:
+        df.to_csv(f, index=False)
+    return proc_csv_name
+
+
+pregrouped = {
+}
 
 
 def pregroup_nodes(nodes: list) -> list:
@@ -296,37 +448,64 @@ def pregroup_nodes(nodes: list) -> list:
     # return filtered
 
     # Now pre-pair students who want to be pre-paired
-    # indices_to_remove = []
-    # paired = []
-    # for (i, node) in enumerate(filtered):
-    #     partner = by_email.get(node.props[0]["pregroup_partner"], None)
-    #     if partner and i not in indices_to_remove:
-    #         found = filtered.index(partner)
-    #         assert found is not None and found != i
-    #         indices_to_remove.append(i)
-    #         indices_to_remove.append(found)
-    #         print(
-    #             i,
-    #             found,
-    #             node.props[0]["pregroup_partner"],
-    #             partner.props[0]["email"],
-    #         )
-    #         paired.append(node + partner)
-    # print(
-    #     "People who entered a partner who did not fill out the form:",
-    #     [
-    #         (i, n.props[0]["pregroup_partner"])
-    #         for i, n in enumerate(filtered)
-    #         if i not in indices_to_remove and n.props[0]["pregroup_partner"]
-    #     ],
-    # )
-    # for i, n in enumerate(filtered):
-    #     if i not in indices_to_remove and n.props[0]["pregroup_partner"]:
-    #         n.props[0][
-    #             "pregroup_partner"
-    #         ] += " (this person did not fill out the form or incorrect email!)"
-    # filtered = [filtered[i] for i in range(len(filtered)) if i not in indices_to_remove]
-    # filtered += paired
+    if PREGROUP_PARTNERS:
+        indices_to_remove = []
+        paired = []
+        for (i, node) in enumerate(filtered):
+            partner = by_email.get(node.props[0]["pregroup_partner"], None)
+            if partner and i not in indices_to_remove:
+                found = filtered.index(partner)
+                if found is None or found == i:
+                    continue
+                assert found is not None and found != i
+                indices_to_remove.append(i)
+                indices_to_remove.append(found)
+
+                # Check if has second partner listed
+                partner2 = by_email.get(
+                    node.props[0]["pregroup_partner2"], None)
+                if partner2:
+                    found2 = filtered.index(partner2)
+                    assert found2 is not None and found2 != i
+                    indices_to_remove.append(found2)
+                    print(
+                        i,
+                        found,
+                        found2,
+                        node.props[0]["pregroup_partner"],
+                        partner.props[0]["email"],
+                        node.props[0]["pregroup_partner2"],
+                        partner2.props[0]["email"],
+                    )
+                    paired.append(node)
+                    pregrouped[node.props[0]["email"]] = [partner, partner2]
+                else:
+                    print(
+                        i,
+                        found,
+                        node.props[0]["pregroup_partner"],
+                        partner.props[0]["email"],
+                    )
+                    paired.append(node)
+                    pregrouped[node.props[0]["email"]] = [partner]
+
+        print(
+            "People who entered a partner who did not fill out the form:",
+            [
+                (i, n.props[0]["pregroup_partner"])
+                for i, n in enumerate(filtered)
+                if i not in indices_to_remove and n.props[0]["pregroup_partner"]
+            ],
+        )
+        for i, n in enumerate(filtered):
+            if i not in indices_to_remove and n.props[0]["pregroup_partner"]:
+                n.props[0][
+                    "pregroup_partner"
+                ] += " (this person did not fill out the form or incorrect email!)"
+        filtered = [filtered[i]
+                    for i in range(len(filtered)) if i not in indices_to_remove]
+        filtered += paired
+    print(PREGROUP_PARTNERS, filtered)
     return filtered
 
 
@@ -335,9 +514,9 @@ def batch(arr, n=2):
     if not len(arr) // n:
         return [arr]
     for i in range(len(arr) // n):
-        at = arr[i * n : i * n + n]
+        at = arr[i * n: i * n + n]
         if i + 1 >= len(arr) // n:
-            at = arr[i * n :]
+            at = arr[i * n:]
         ret.append(at)
     return ret
 
@@ -367,7 +546,7 @@ def group_genders(arr, n=2):
 
 def postprocess_partitions(subgroups: list) -> list:
     # Black
-    # Pacific Islander / Alaskan
+    # Indigenous Native American / Pacific Islander
     # Cis Female
     # Hispanic
     # All non-male/female genders
@@ -385,107 +564,59 @@ def postprocess_partitions(subgroups: list) -> list:
 
 
 def is_black(props):
-    return props["race"] is not None and props["race"] == 3
+    return props["race"] is not None and (props["race"] == 0)
 
 
 def is_hispanic(props):
-    return props["race"] is not None and props["race"] == 2
+    return props["race"] is not None and (props["race"] == 1)
 
 
-def is_islander(props):
-    return props["race"] is not None and props["race"] == 5
-
-
-def is_alaskan(props):
-    return props["race"] is not None and props["race"] == 4
+def is_indigenous(props):
+    return props["race"] is not None and (props["race"] == 2)
 
 
 def is_female(props):
-    return props["gender"] is not None and props["gender"] == 0
+    return props["gender"] is not None and (props["gender"] == 0)
 
 
 def is_nonmf(props):
-    return props["gender"] is not None and props["gender"] not in (0, 1)
+    return props["gender"] is not None and (props["gender"] not in (0, 1))
 
 
 def is_underrepresented(props):
     return (
         props["race"] is not None
-        and 2 <= props["race"] <= 6
-        or (props["gender"] is not None and props["gender"] != 1)
+        and props["race"] <= 3
+        or ((props["gender"] is not None) and props["gender"] != 1)
     )
 
 
 def post_processing(matches: list):
     from collections import Counter
-    import pandas as pd
-
-    # TODO: fix that it's hardcoded for now, should generalize by partition criteria and type.
-    def reconstruct_path(match: Match):
-        if "modification" in str(match.path):
-            match.path = []
-            if len(set([x["year"] for x in match.node.props])) == 1:
-                match.path.append(["year", match.node.props[0]["year"]])
-            if len(set([x["remote"] for x in match.node.props])) == 1:
-                match.path.append(["remote", match.node.props[0]["remote"]])
-                day_flag = 0
-                for day in [
-                    "Monday",
-                    "Tueday",
-                    "Wednesday",
-                    "Thursday",
-                    "Friday",
-                    "Saturday",
-                    "Sunday",
-                ]:
-                    if (
-                        all(
-                            [
-                                (x["meeting_days"] and day in x["meeting_days"])
-                                for x in match.node.props
-                            ]
-                        )
-                        and not day_flag
-                    ):
-                        day_flag = 1
-                        match.path.append(["meeting_days", day])
-                        time_flag = 0
-                        for time in ["Morning", "Afternoon", "Evening", "Night"]:
-                            if (
-                                all(
-                                    [
-                                        (
-                                            x["meeting_time"]
-                                            and time in x["meeting_time"]
-                                        )
-                                        for x in match.node.props
-                                    ]
-                                )
-                                and not time_flag
-                            ):
-                                time_flag = 1
-                                match.path.append(["meeting_time", time])
 
     def describe_group(match: Match):
         race_map = {
-            0: "White",
-            1: "Asian",
-            2: "Hispanic",
-            3: "Black",
-            4: "Alaska",
-            5: "Islander",
-            6: "Middle-Eastern",
-            7: "Multiple Races",
+            0: "Black",
+            1: "Latinx",
+            2: "Indigenous",
+            3: "MENA",
+            4: "Native Hawaiian",
+            5: "Multiple Races",
+            6: "Asian",
+            7: "White",
             8: "DTS",
+            9: "Do not use",
             None: "DTS",
         }
 
-        gender_map = {0: "Female", 1: "Male", 2: "Non-M/F", 3: "DTS", None: "DTS"}
+        gender_map = {0: "Female", 1: "Male", 2: "Non-M/F",
+                      3: "DTS", None: "DTS", 4: "Do not"}
 
         return (
             ", ".join(
                 [
-                    (race_map[x.get("race", 8)] + " " + gender_map[x.get("gender", 3)])
+                    (race_map[x.get("race", 8)] + " " +
+                     gender_map[x.get("gender", 3)])
                     for x in match.node.props
                 ]
             )
@@ -503,13 +634,15 @@ def post_processing(matches: list):
         if match.source == "existing":
             continue
         by_size[match.size] = by_size.get(match.size, []) + [match]
-    matches = [match for match in matches if match not in by_size[2]]
-    for arr in batch(by_size[2], n=2):
-        props = sum((x.node.props for x in arr), [])
-        node = Node(props, size=(len(arr) * 2), assigned=True)
-        matches.append(Match(node=node, source="path", path="(manually fixed)"))
 
-    # handle students who asked for existing groups, but for some reason (didn't communicate, etc.) ended up as a solo (and now, we have no non-demo preferences to go off of)
+    if 2 in by_size: 
+        matches = [match for match in matches if match not in by_size[2]]
+        for arr in batch(by_size[2], n=2):
+            props = sum((x.node.props for x in arr), [])
+            node = Node(props, size=(len(arr) * 2), assigned=True)
+            matches.append(
+                Match(node=node, source="path", path="(manually fixed)"))
+
     existing_singletons = []
     for match in matches:
         if match.source != "existing":
@@ -518,11 +651,11 @@ def post_processing(matches: list):
             existing_singletons.append(match)
     print(f"Singleton count: {len(existing_singletons)}")
     matches = [match for match in matches if match not in existing_singletons]
+    print("DEBUG: props and singletons", [
+          match.node.props for match in existing_singletons])
     for props in group_genders(
         [match.node.props[0] for match in existing_singletons], n=3
     ):
-        # props = sum((x.node.props for x in arr), [])
-        # print(len(props))
         node_size = len(props)
         if node_size == 1:
             print(props[0])
@@ -535,32 +668,34 @@ def post_processing(matches: list):
             )
         )
 
-    # For female students; find groups with only 1 female. Take females from half of them, and add to the other half (pair up).
-    # TODO: implement odd-number workaround
-    female_groups = []
+    leader_counts = []
     for match in matches:
-        if match.source == "existing" or match.path == "(singleton manually fixed)":
+        print("******these are leader details*******")
+        total_leaders = 0
+        found_leader = False
+        print(match.node.can_split)
+        for person in match.node.props:
+            leader = person["leader"]
+            if leader:
+                total_leaders += 1
+        leader_counts.append(total_leaders)
+    print("leader counts", leader_counts)
+
+
+    black_groups = []
+    for match in matches:
+        if any(is_black(x) for x in match.node.props):
+            black_groups.append(match)
+    black_groups = sorted(black_groups, key=lambda x: x.size, reverse=True)
+    for i in range(len(black_groups) // 2):
+        member = [x for x in black_groups[i].node.props if is_black(x)][0]
+        if is_female(member):
             continue
-        num_female_students = 0
-        for x in match.node.props:
-            if is_female(x):
-                num_female_students = num_female_students + 1
-        if num_female_students == 1:
-            female_groups.append(match)
-    female_groups = sorted(female_groups, key=lambda x: x.size, reverse=True)
-    if len(female_groups) % 2 == 1:
-        print(f"{len(female_groups)}, CANNOT pair all females")
-    for i in range(len(female_groups) // 2):
-        member = [x for x in female_groups[i].node.props if is_female(x)][0]
-        # if is_female(member):
-        #     continue
-        female_groups[i].node.size -= 1
-        female_groups[i].node.props.remove(member)
-        female_groups[i].path = "(gender modification singletons - 1)"
-        j = i + len(female_groups) // 2
-        female_groups[j].node.size += 1
-        female_groups[j].node.props.append(member)
-        female_groups[j].path = "(gender modification singletons + 1)"
+        black_groups[i].node.size -= 1
+        black_groups[i].node.props.remove(member)
+        j = i + len(black_groups) // 2
+        black_groups[j].node.size += 1
+        black_groups[j].node.props.append(member)
 
     # Pair up hispanic students
     hispanic_groups = []
@@ -573,11 +708,11 @@ def post_processing(matches: list):
                 num_hispanic_students = num_hispanic_students + 1
         if num_hispanic_students == 1:
             hispanic_groups.append(match)
-    hispanic_groups = sorted(hispanic_groups, key=lambda x: x.size, reverse=True)
+    hispanic_groups = sorted(
+        hispanic_groups, key=lambda x: x.size, reverse=True)
     for i in range(len(hispanic_groups) // 2):
-        member = [x for x in hispanic_groups[i].node.props if is_hispanic(x)][0]
-        # if is_female(member):
-        #     continue
+        member = [
+            x for x in hispanic_groups[i].node.props if is_hispanic(x)][0]
         hispanic_groups[i].node.size -= 1
         hispanic_groups[i].node.props.remove(member)
         hispanic_groups[i].path = "(hispanic modification singletons - 1)"
@@ -586,37 +721,11 @@ def post_processing(matches: list):
         hispanic_groups[j].node.props.append(member)
         hispanic_groups[j].path = "(hispanic modification singletons + 1)"
 
-    # Pair up black students
-    black_groups = []
-    for match in matches:
-        if match.source == "existing" or match.path == "(singleton manually fixed)":
-            continue
-        num_black_students = 0
-        for x in match.node.props:
-            if is_black(x):
-                num_black_students = num_black_students + 1
-        if num_black_students == 1:
-            black_groups.append(match)
-    black_groups = sorted(black_groups, key=lambda x: x.size, reverse=True)
-    print("BLACK: ", black_groups)
-    for i in range(len(black_groups) // 2):
-        member = [x for x in black_groups[i].node.props if is_black(x)][0]
-        # if is_female(member):
-        #     continue
-        black_groups[i].node.size -= 1
-        black_groups[i].node.props.remove(member)
-        black_groups[i].path = "(black modification singletons - 1)"
-        j = i + len(black_groups) // 2
-        black_groups[j].node.size += 1
-        black_groups[j].node.props.append(member)
-        black_groups[j].path = "(black modification singletons + 1)"
-
     total_num = 0
     minority_groups = [
         ("Black", is_black),
         ("Hispanic", is_hispanic),
-        ("Islander", is_islander),
-        ("Alaskan", is_alaskan),
+        ("Indigenous", is_indigenous),
         ("female", is_female),
         ("non-mf", is_nonmf),
         ("underrepresented", is_underrepresented),
@@ -629,8 +738,10 @@ def post_processing(matches: list):
             num_minority = sum(1 for x in match.node.props if minority_fn(x))
             group_desc = describe_group(match)
             if num_minority > 0:
-                fractions[num_minority] = fractions.get(num_minority, []) + [group_desc]
-                lengths[num_minority] = lengths.get(num_minority, 0) + match.size
+                fractions[num_minority] = fractions.get(
+                    num_minority, []) + [group_desc]
+                lengths[num_minority] = lengths.get(
+                    num_minority, 0) + match.size
 
         counter = fractions
         if not counter:
@@ -649,51 +760,23 @@ def post_processing(matches: list):
             print("\n".join(counter[k]))
             print("******")
 
+    for match in matches:
+        for person in match.node.props:
+            if person["email"] in pregrouped:
+                for new_mem in pregrouped[person["email"]]:
+                    match.node += new_mem
+
     out = []
     for match in matches:
         added = [x["partner"] for x in match.node.props if "partner" in x]
         match.node.props += added
-    match_depths = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
-    for match in matches:
-        reconstruct_path(match)
+        print("added:", match)
+    match_depths = {1: 0, 2: 0, 3: 0, 4: 0}
+
     for (i, match) in enumerate(matches):
-        if (
-            match.path
-            and str(match.path) != "(manually fixed)"
-            and str(match.path) != "(singleton manually fixed)"
-            and "modification" not in str(match.path)
-        ):
-            print(match.path)
-            curr_path = match.path
-            if type(curr_path) == tuple:
-                match_depths[len(match.path)] = match_depths[len(match.path)] + 1
-            if len(match.path) == 5:
-                common_remoteness = match.path[1][1]
-                common_meeting_day = match.path[2][1]
-                common_meeting_time = match.path[3][1]
-                common_section = match.path[4][1]
-            elif len(match.path) == 4:
-                common_remoteness = match.path[1][1]
-                common_meeting_day = match.path[2][1]
-                common_meeting_time = match.path[3][1]
-                common_section = " "
-            elif len(match.path) == 3:
-                common_remoteness = match.path[1][1]
-                common_meeting_day = match.path[2][1]
-                common_meeting_time = " "
-                common_section = " "
-            elif len(match.path) == 2:
-                common_remoteness = match.path[1][1]
-                common_meeting_day = " "
-                common_meeting_time = " "
-                common_section = " "
-        else:
-            common_remoteness = " "
-            common_meeting_day = " "
-            common_meeting_time = " "
-            common_section = " "
-            curr_path = str(match.path)
+
         for person in match.node.props:
+
             out.append(
                 {
                     "group_num": i,
@@ -703,16 +786,15 @@ def post_processing(matches: list):
                     "last": person["last_name"],
                     "incoming_partners": person.get("incoming_partners", "N/A"),
                     "outgoing_partners": person.get("outgoing_partners", "N/A"),
+                    "year": person["year"],
+                    "freq": person["interaction_freq"],
                     "race": person["race"],
                     "gender": person["gender"],
                     "had existing": person["is_existing"],
-                    "meeting days": person["meeting_days"],
-                    "meeting times": person["meeting_time"],
-                    "common_remoteness": common_remoteness,
-                    "common_meeting_day": common_meeting_day,
-                    "common_meeting_time": common_meeting_time,
-                    "common_section": common_section,
-                    "path": curr_path,
+                    "is_leader": person["leader"],
+                    "location": person["location_options"],
+                    "pregroup_partner": person.get("pregroup_partner", "N/A"),
+                    "pregroup_partner2": person.get("pregroup_partner2", "N/A")
                 }
             )
 
