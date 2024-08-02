@@ -202,7 +202,7 @@ ROW_CONFIG = Row(
             "leader",
             "text",
             transformer=lambda x: x == "Yes",
-            is_optional=False, 
+            is_optional=False,
         ),
         Column("How would you like to interact with a study group",
                "interact_types",
@@ -271,20 +271,20 @@ ROW_CONFIG = Row(
             is_optional=True,
             transformer=lambda x: x == "Yes",
         ),
-        Column(                       # TODO: comment in this Column if you wish to pregroup students
-            "pregroup_partner",
-            "pregroup_partner",
-            "text",
-            is_optional=True,
-            transformer=email_transformer,
-        ),
-        Column(                       # TODO: comment in this Column if you wish to pregroup students
-            "pregroup_partner2",
-            "pregroup_partner2",
-            "text",
-            is_optional=True,
-            transformer=email_transformer,
-        ),
+        # Column(                       # TODO: comment in this Column if you wish to pregroup students
+        #     "pregroup_partner",
+        #     "pregroup_partner",
+        #     "text",
+        #     is_optional=True,
+        #     transformer=email_transformer,
+        # ),
+        # Column(                       # TODO: comment in this Column if you wish to pregroup students
+        #     "pregroup_partner2",
+        #     "pregroup_partner2",
+        #     "text",
+        #     is_optional=True,
+        #     transformer=email_transformer,
+        # ),
     ]
 )
 
@@ -673,7 +673,7 @@ def post_processing(matches: list):
         print("******these are leader details*******")
         total_leaders = 0
         found_leader = False
-        print(match.node.can_split)
+        #print(match.node.can_split)
         for person in match.node.props:
             leader = person["leader"]
             if leader:

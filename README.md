@@ -32,17 +32,17 @@ The following modifications should be made in your config file. The config file 
 
 #### Usage and Output
 Run script: `python run.py example_config.py /path/to/intake_survey_responses.csv`
-* example_config.py is the config file that is tailored to your desired grouping output
-* /path/to/intake_survey_responses.csv is your cleaned dataset
+* example_config.py -- the config file that is tailored to your desired grouping output
+* /path/to/intake_survey_responses.csv -- your cleaned dataset
 
-TODO: output csv info
+The algorithm should output a file called "out-private.csv" which contains the group assignments. Students with the same group_num in out-private.csv were matched to the same group. You can sanity check that students are being matched based on the correct configurations by checking the values in each column.
 
 ### 3. Post Processing
-Make some manual spot checks to your output.csv file. This includes manually modifying the groups in the output CSV file if necessary. We recommend making sure that the following doesn’t happen: 
+Make some manual spot checks to your out-private.csv file. This includes manually modifying the groups in the output CSV file if necessary. We recommend making sure that the following doesn’t happen: 
 * A student is a singleton (i.e. the only student of their race/gender in a given group) -- add this student to a group where they are not a singleton
-* Solo students (1 person in a group)-- add this student to an existing group
+* Solo students (1 person in a group) -- add this student to an existing group
 
-To email students information about their study group partners we use [YAMM](https://yamm.com/). Our script to create a YAMM compatible CSV file given your output.csv is at Materials/into_yamm.ipynb. The corresponding example YAMM email script can also be found in that file.
+To email students information about their study group partners we use [YAMM](https://yamm.com/). Our script to create a YAMM compatible CSV file given your out-private.csv is at Materials/into_yamm.ipynb. The corresponding example YAMM email script can also be found in that file.
 
 ## Our Publications
 
